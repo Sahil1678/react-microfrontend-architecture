@@ -1,0 +1,15 @@
+{
+  "name": "microfrontend-demo",
+  "version": "1.0.0",
+  "private": true,
+  "description": "React Microfrontend Architecture using Webpack 5 Module Federation",
+  "scripts": {
+    "install:all": "npm install && cd products && npm install && cd ../cart && npm install && cd ../host && npm install && cd ..",
+    "start": "concurrently -n \"products,cart,host\" -c \"cyan,magenta,green\" \"npm run start --prefix products\" \"npm run start --prefix cart\" \"npm run start --prefix host\"",
+    "start:all": "npm start",
+    "build:all": "cd products && npm run build && cd ../cart && npm run build && cd ../host && npm run build && cd .."
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}
