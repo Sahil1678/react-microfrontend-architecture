@@ -3,15 +3,18 @@ const { ModuleFederationPlugin } = require("webpack").container;
 const path = require("path");
 const deps = require("./package.json").dependencies;
 
+const isProd = process.env.NODE_ENV === "production";
+
 module.exports = {
-  mode: "development",
+  mode: isProd ? "production" : "development",
   devServer: {
     port: 3000,
     historyApiFallback: true,
     static: path.join(__dirname, "public"),
   },
   output: {
-    publicPath: "http://localhost:3000/",
+    path: path.resolve(__dirname, "../dist"),
+    publicPath: "/",
   },
   resolve: {
     extensions: [".js", ".jsx"],
@@ -36,8 +39,12 @@ module.exports = {
     new ModuleFederationPlugin({
       name: "host",
       remotes: {
-        products: "products@http://localhost:3001/remoteEntry.js",
-        cart: "cart@http://localhost:3002/remoteEntry.js",
+        products: isProd
+          ? "products@/products-remote/remoteEntry.js"
+          : "products@http://localhost:3001/remoteEntry.js",
+        cart: isProd
+          ? "cart@/cart-remote/remoteEntry.js"
+          : "cart@http://localhost:3002/remoteEntry.js",
       },
       shared: {
         ...deps,

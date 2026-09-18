@@ -3,8 +3,10 @@ const { ModuleFederationPlugin } = require("webpack").container;
 const path = require("path");
 const deps = require("./package.json").dependencies;
 
+const isProd = process.env.NODE_ENV === "production";
+
 module.exports = {
-  mode: "development",
+  mode: isProd ? "production" : "development",
   devServer: {
     port: 3001,
     historyApiFallback: true,
@@ -14,7 +16,8 @@ module.exports = {
     },
   },
   output: {
-    publicPath: "http://localhost:3001/",
+    path: isProd ? path.resolve(__dirname, "../dist/products-remote") : path.resolve(__dirname, "dist"),
+    publicPath: isProd ? "/products-remote/" : "http://localhost:3001/",
   },
   resolve: {
     extensions: [".js", ".jsx"],
