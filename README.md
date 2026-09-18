@@ -1,206 +1,114 @@
-# React Microfrontend Architecture
+# React Microfrontend Architecture Demo
 
-A production-grade, enterprise Microfrontend Architecture implementation built using **Webpack 5 Module Federation**, **React 18**, and an asynchronous event-driven state bridge.
+A practical microfrontend implementation built with React 18 and Webpack 5 Module Federation.
 
-Developed for the **React Developer Evaluation** at **Version Next Technologies Private Limited**.
+This project demonstrates how three independent React applications can be composed at runtime:
+1. **Host App** (`http://localhost:3000`): The shell/container application providing routing, navigation, and live cart counter.
+2. **Products App** (`http://localhost:3001`): Remote microfrontend exposing the product catalog component (`./ProductsList`).
+3. **Cart App** (`http://localhost:3002`): Remote microfrontend exposing the cart management component (`./CartList`).
 
 ---
 
-## 🏗️ Architecture Overview
+## Architecture & Communication
 
-The system is composed of three independently buildable and deployable React applications:
+### 1. Webpack Module Federation
+- All three applications configure Webpack's `ModuleFederationPlugin`.
+- The **Host** dynamically imports `products/ProductsList` and `cart/CartList` at runtime using `React.lazy()` and `Suspense`.
+- Common dependencies (`react`, `react-dom`, `react-router-dom`) are declared as shared singletons (`singleton: true`) across all apps to prevent multiple React runtime instances.
 
-| Application | Role | Port | Exposes / Remotes | Standalone URL |
-| :--- | :--- | :--- | :--- | :--- |
-| **Host App** | Container / Orchestrator | `3000` | Consumes `products` & `cart` | [http://localhost:3000](http://localhost:3000) |
-| **Products App** | Remote Microfrontend | `3001` | Exposes `./ProductsList` | [http://localhost:3001](http://localhost:3001) |
-| **Cart App** | Remote Microfrontend | `3002` | Exposes `./CartList` | [http://localhost:3002](http://localhost:3002) |
+### 2. State & Cross-App Events
+- **Pub/Sub Event Bus**: `ProductsList` dispatches a standard browser `CustomEvent` (`add-to-cart`) when a user adds an item.
+- **Listeners**: The `CartList` remote and the Host navbar listen for `add-to-cart` and `cart-updated` events to update state and badge counts in real time.
+- **Persistence**: Cart items are backed up in `localStorage` (`mf-cart-items`), keeping state preserved during route transitions or page refreshes.
 
-### System Diagram
+### 3. Standalone Execution
+Both `products` and `cart` remotes can be run and tested standalone:
+- Products: `http://localhost:3001`
+- Cart: `http://localhost:3002`
 
-```mermaid
-flowchart TB
-    subgraph HostContainer ["Host Container (Port 3000)"]
-        Nav["Navigation Bar & Dynamic Cart Badge"]
-        Router["React Router DOM (/products, /cart)"]
-        EB["Microfrontend Error Boundary"]
-        SuspenseBlock["React.lazy() + Suspense Fallback"]
-    end
+---
 
-    subgraph ProductsRemote ["Products Microfrontend (Port 3001)"]
-        ProductsComponent["./ProductsList"]
-        CatalogState["Category Filter & Search"]
-        AddAction["Add to Cart Trigger"]
-    end
+## Quick Start
 
-    subgraph CartRemote ["Cart Microfrontend (Port 3002)"]
-        CartComponent["./CartList"]
-        QtyControl["Quantity (+/-) & Item Removal"]
-        CheckoutState["Order Summary & Discount Modal"]
-    end
-
-    subgraph EventBridge ["Cross-Microfrontend Event Bridge"]
-        CE_Add["window CustomEvent('add-to-cart')"]
-        CE_Update["window CustomEvent('cart-updated')"]
-        Storage["localStorage ('mf-cart-items')"]
-    end
-
-    Router -->|"/products"| SuspenseBlock
-    Router -->|"/cart"| SuspenseBlock
-    SuspenseBlock -->|Webpack Module Federation| ProductsComponent
-    SuspenseBlock -->|Webpack Module Federation| CartComponent
-
-    AddAction -->|Dispatches| CE_Add
-    AddAction -->|Persists| Storage
-    CE_Add -->|Listens| CartComponent
-    CE_Add -->|Updates Count| Nav
-
-    QtyControl -->|Dispatches| CE_Update
-    QtyControl -->|Syncs| Storage
-    CE_Update -->|Updates Count| Nav
+### 1. Install Dependencies
+```bash
+# Install root orchestration tools and all app dependencies
+npm run install:all
 ```
 
----
+*(Alternatively, run `npm install` inside `products`, `cart`, and `host` directories).*
 
-## ⚡ Key Technical Features
-
-### 1. Webpack 5 Module Federation
-- Configured with `ModuleFederationPlugin` across all three apps.
-- **Remotes in Host**:
-  ```javascript
-  remotes: {
-    products: "products@http://localhost:3001/remoteEntry.js",
-    cart: "cart@http://localhost:3002/remoteEntry.js",
-  }
-  ```
-- **Exposes in Remotes**:
-  - Products: `exposes: { "./ProductsList": "./src/ProductsList" }`
-  - Cart: `exposes: { "./CartList": "./src/CartList" }`
-- **Shared Singletons**: `react`, `react-dom`, and `react-router-dom` are shared with `singleton: true` to prevent duplicate React runtime instances and ensure hook compatibility across boundaries.
-
-### 2. Cross-Microfrontend Communication
-- Fully decoupled communication through native `window.dispatchEvent` with custom events (`add-to-cart`, `cart-updated`).
-- Persistent state backup via `localStorage` ensuring items remain consistent on route transitions, unmounts, or page reloads.
-- Live Badge Counter in the Container navbar that reactively updates whenever products are added or cart quantities change.
-
-### 3. Resilient Error Boundaries & Standalone Execution
-- Host app includes a `MicrofrontendErrorBoundary` that catches network/remote failures with intuitive diagnostic feedback and connection retries.
-- Each microfrontend can be run and tested **100% standalone** by visiting `http://localhost:3001` or `http://localhost:3002`.
-
----
-
-## 🚀 Quick Start & Installation
-
-### Option 1: One-Command Setup (Recommended)
-
-From the project root:
-
+### 2. Run the Applications
 ```bash
-# 1. Install dependencies across root and all 3 microfrontends
-npm run install:all
-
-# 2. Start all 3 microfrontends concurrently
+# Start all 3 microfrontends concurrently
 npm start
 ```
 
-### Option 2: Step-by-Step Manual Setup
+This starts:
+- Host container on **http://localhost:3000**
+- Products remote on **http://localhost:3001**
+- Cart remote on **http://localhost:3002**
 
-If you prefer running each app in a dedicated terminal window:
+---
 
-#### 1. Install Dependencies
+## Manual Step-by-Step Run
+
+If you want to run each service in a separate terminal:
+
 ```bash
-# Products Microfrontend
-cd products && npm install
+# Terminal 1 - Products (Port 3001)
+cd products
+npm start
 
-# Cart Microfrontend
-cd ../cart && npm install
+# Terminal 2 - Cart (Port 3002)
+cd cart
+npm start
 
-# Host App
-cd ../host && npm install
-```
-
-#### 2. Start Services (Start remotes before host)
-```bash
-# Terminal 1 — Products Remote (Port 3001)
-cd products && npm start
-
-# Terminal 2 — Cart Remote (Port 3002)
-cd cart && npm start
-
-# Terminal 3 — Host Container (Port 3000)
-cd host && npm start
+# Terminal 3 - Host (Port 3000)
+cd host
+npm start
 ```
 
 ---
 
-## 🧪 Testing & Verification Guide
+## Key Features
 
-1. **Access the Container App**:
-   - Open **[http://localhost:3000](http://localhost:3000)**.
-   - The `/products` route loads automatically.
-
-2. **Browse & Add Products**:
-   - Filter by categories (Peripherals, Audio, Displays, Accessories) or type in the search bar.
-   - Click **Add to Cart** on any item.
-   - Notice the toast confirmation and the real-time badge count update in the top navbar.
-
-3. **Manage Cart**:
-   - Click the **Cart** tab in the navbar (or visit `http://localhost:3000/cart`).
-   - Adjust quantities using `+` and `-` buttons.
-   - Apply promo code `VERSIONNEXT10` to get a 10% discount.
-   - Click **Proceed to Checkout** to view the confirmation modal.
-   - Remove individual items or click **Clear Cart**.
-
-4. **Test Standalone Mode**:
-   - Open **[http://localhost:3001](http://localhost:3001)** for the standalone Products catalog.
-   - Open **[http://localhost:3002](http://localhost:3002)** for the standalone Cart management.
+- **Dynamic Loading & Routing**: Client-side routing with React Router v6 (`/products` and `/cart`).
+- **Resilient Fallbacks**: Error boundaries and suspense loading skeletons for handling remote latency or disconnects.
+- **Interactive Catalog**: Category filters, real-time search, ratings, and pricing in INR.
+- **Cart Management**: Quantity controls (`+` / `-`), item removal, clear cart, coupon discount (`VERSIONNEXT10`), and simulated checkout modal.
 
 ---
 
-## 📁 Repository Directory Structure
+## Project Structure
 
 ```
 microfrontend-demo/
-├── package.json                 # Root orchestrator (concurrently, install:all, start)
-├── README.md                    # Project documentation
-├── host/                        # Container App (Port 3000)
-│   ├── package.json
-│   ├── webpack.config.js        # ModuleFederationPlugin (remotes config)
-│   ├── public/
-│   │   └── index.html
+├── package.json              # Root scripts (install:all, start with concurrently)
+├── README.md                 # Project documentation
+├── host/                     # Container App (Port 3000)
+│   ├── webpack.config.js     # Module Federation remotes config
 │   └── src/
-│       ├── App.js               # Navbar, dynamic routes, badge counter, ErrorBoundary
-│       ├── host.css             # Host styling & layout system
-│       ├── bootstrap.js
-│       └── index.js
-├── products/                    # Products Microfrontend (Port 3001)
-│   ├── package.json
-│   ├── webpack.config.js        # ModuleFederationPlugin (exposes ./ProductsList)
-│   ├── public/
-│   │   └── index.html
+│       ├── App.js            # Navbar, routing, badge count, error boundary
+│       ├── host.css
+│       └── bootstrap.js
+├── products/                 # Products Remote (Port 3001)
+│   ├── webpack.config.js     # Exposes ./ProductsList
 │   └── src/
-│       ├── ProductsList.js      # Product catalog, search, filter, event dispatcher
-│       ├── products.css         # Products styling
-│       ├── bootstrap.js         # Standalone runner
-│       └── index.js
-└── cart/                        # Cart Microfrontend (Port 3002)
-    ├── package.json
-    ├── webpack.config.js        # ModuleFederationPlugin (exposes ./CartList)
-    ├── public/
-    │   └── index.html
+│       ├── ProductsList.js   # Catalog, category filtering, search, add-to-cart
+│       ├── products.css
+│       └── bootstrap.js
+└── cart/                     # Cart Remote (Port 3002)
+    ├── webpack.config.js     # Exposes ./CartList
     └── src/
-        ├── CartList.js          # Cart item list, qty controls, promo logic, event listener
-        ├── cart.css             # Cart styling
-        ├── bootstrap.js         # Standalone runner
-        └── index.js
+        ├── CartList.js       # Cart items, quantity controls, coupon, checkout
+        ├── cart.css
+        └── bootstrap.js
 ```
 
 ---
 
-## 🛠️ Tech Stack
+## Author
 
-- **Framework**: React 18 (`react`, `react-dom`)
-- **Routing**: React Router v6 (`react-router-dom`)
-- **Bundler & Architecture**: Webpack 5 + Module Federation
-- **Styling**: Modern Vanilla CSS with CSS Custom Properties, Glassmorphism, and Google Fonts (`Plus Jakarta Sans`)
-- **Tooling**: Babel, Webpack Dev Server, Concurrently
+- **Sahil Sawant** ([@Sahil1678](https://github.com/Sahil1678))
+- Email: sahilsawant064@gmail.com
