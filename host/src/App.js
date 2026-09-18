@@ -1,5 +1,5 @@
 import React, { Suspense, lazy, useState, useEffect, Component } from "react";
-import { BrowserRouter, Routes, Route, NavLink, Navigate } from "react-router-dom";
+import { HashRouter, Routes, Route, NavLink, Navigate } from "react-router-dom";
 import "./host.css";
 
 // Lazy-loaded remote components via Webpack Module Federation
@@ -145,7 +145,7 @@ export default function App() {
   }, []);
 
   return (
-    <BrowserRouter>
+    <HashRouter>
       <div className="layout">
         <Navbar cartCount={cartCount} />
 
@@ -157,7 +157,7 @@ export default function App() {
               element={
                 <RemoteErrorBoundary
                   name="Products Remote"
-                  url="http://localhost:3001"
+                  url="products/ProductsList"
                 >
                   <Suspense fallback={<LoadingFallback />}>
                     <ProductsList />
@@ -170,7 +170,7 @@ export default function App() {
               element={
                 <RemoteErrorBoundary
                   name="Cart Remote"
-                  url="http://localhost:3002"
+                  url="cart/CartList"
                 >
                   <Suspense fallback={<LoadingFallback />}>
                     <CartList />
@@ -188,6 +188,6 @@ export default function App() {
           </div>
         </footer>
       </div>
-    </BrowserRouter>
+    </HashRouter>
   );
 }

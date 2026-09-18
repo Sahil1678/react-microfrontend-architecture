@@ -14,7 +14,7 @@ module.exports = {
   },
   output: {
     path: path.resolve(__dirname, "../dist"),
-    publicPath: "/",
+    publicPath: "auto",
   },
   resolve: {
     extensions: [".js", ".jsx"],
@@ -40,10 +40,10 @@ module.exports = {
       name: "host",
       remotes: {
         products: isProd
-          ? "products@/products-remote/remoteEntry.js"
+          ? "products@./products-remote/remoteEntry.js"
           : "products@http://localhost:3001/remoteEntry.js",
         cart: isProd
-          ? "cart@/cart-remote/remoteEntry.js"
+          ? "cart@./cart-remote/remoteEntry.js"
           : "cart@http://localhost:3002/remoteEntry.js",
       },
       shared: {

@@ -17,7 +17,7 @@ module.exports = {
   },
   output: {
     path: isProd ? path.resolve(__dirname, "../dist/products-remote") : path.resolve(__dirname, "dist"),
-    publicPath: isProd ? "/products-remote/" : "http://localhost:3001/",
+    publicPath: "auto",
   },
   resolve: {
     extensions: [".js", ".jsx"],
